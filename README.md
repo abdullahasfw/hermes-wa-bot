@@ -35,46 +35,47 @@ Isi file `.env` dengan nilai Anda:
 ```env
 HERMES_API_BASE_URL=http://127.0.0.1:8642
 HERMES_API_KEY=PASTE_API_SERVER_KEY
-WHATSAPP_ALLOWED_NUMBERS=6281234567890,6289876543210
-WHATSAPP_PHONE_NUMBER=6281234567890
+WHATSAPP_ALLOWED_NUMBERS=15551234567
+WHATSAPP_PHONE_NUMBER=
 WHATSAPP_UNAUTHORIZED_BEHAVIOR=reply
 BOT_NAME=Hermes WA Bot
 HERMES_API_TIMEOUT_MS=45000
 HERMES_RUN_TIMEOUT_MS=600000
-HERMES_USER_ROUTES='{"6289876543210":{"name":"Hermes teman","baseUrl":"http://100.64.0.2:8642","apiKey":"FRIEND_HERMES_API_KEY","timeoutMs":45000}}'
+# Optional: route a specific allowlisted sender to another Hermes API.
+# HERMES_USER_ROUTES='{"15557654321":{"name":"Hermes user","baseUrl":"https://hermes.example","apiKey":"USER_HERMES_API_KEY","timeoutMs":45000}}'
 ```
 
 Catatan: `WHATSAPP_ALLOWED_NUMBERS` harus diisi nomor WhatsApp yang diizinkan, pisahkan dengan koma bila lebih dari satu.
 `WHATSAPP_PHONE_NUMBER` adalah akun WhatsApp yang ditautkan ke bot; kosongkan untuk menggunakan QR. Jangan samakan keduanya kecuali memang menggunakan satu akun.
 `HERMES_API_TIMEOUT_MS` membatasi setiap request HTTP ke API, sedangkan `HERMES_RUN_TIMEOUT_MS` mengatur lama bot menunggu run Hermes (default 10 menit). Jika batas tunggu run tercapai, run tidak otomatis dibatalkan.
-Satu instance bot menggunakan satu akun/nomor WhatsApp tertaut. Pesan pribadi dari nomor yang diizinkan diteruskan ke Hermes utama secara default. `HERMES_USER_ROUTES` adalah JSON object opsional yang memetakan nomor pengirim tertentu ke endpoint Hermes, nama tampilan, API key, dan timeout API khusus. Nomor yang dipetakan wajib juga ada di `WHATSAPP_ALLOWED_NUMBERS`; setiap route harus memiliki API key tersendiri. Sesi, run aktif, persetujuan, dan perintah `!reset` diisolasi per pengirim, termasuk untuk pesan grup.
-`WHATSAPP_UNAUTHORIZED_BEHAVIOR=reply` mempertahankan balasan penolakan standar; gunakan `ignore` pada instalasi kedua agar ia tidak membalas pesan milik pengguna instalasi pertama.
+Satu instance bot menggunakan satu akun/nomor WhatsApp tertaut. Semua nomor yang diizinkan menggunakan Hermes default kecuali diberi route khusus. `HERMES_USER_ROUTES` adalah JSON object opsional yang memetakan nomor pengirim ke endpoint Hermes, nama tampilan, API key, dan timeout API khusus. Nomor yang dipetakan wajib juga ada di `WHATSAPP_ALLOWED_NUMBERS`; setiap route harus memiliki API key tersendiri. Sesi, run aktif, persetujuan, dan perintah `!reset` diisolasi per pengirim, termasuk untuk pesan grup.
+`WHATSAPP_UNAUTHORIZED_BEHAVIOR=reply` membalas pengirim yang tidak diizinkan dengan pesan penolakan; `ignore` mengabaikan pesan tersebut tanpa membalas.
 
-Contoh dengan pemetaan teman:
+### Routing Hermes per pengirim
 
 ```env
-WHATSAPP_ALLOWED_NUMBERS=6281234567890,6289876543210
+WHATSAPP_ALLOWED_NUMBERS=15551234567,15557654321
 HERMES_API_BASE_URL=http://127.0.0.1:8642
-HERMES_API_KEY=KUNCI_HERMES_UTAMA
-HERMES_USER_ROUTES='{"6289876543210":{"name":"Hermes teman","baseUrl":"http://100.64.0.2:8642","apiKey":"KUNCI_HERMES_TEMAN","timeoutMs":45000}}'
+HERMES_API_KEY=YOUR_DEFAULT_HERMES_API_KEY
+HERMES_USER_ROUTES='{"15557654321":{"name":"Hermes user","baseUrl":"https://hermes.example","apiKey":"USER_HERMES_API_KEY","timeoutMs":45000}}'
 ```
 
-Ganti nomor dan nilai contoh dengan konfigurasi sebenarnya. Jangan bagikan atau commit `.env`. `100.64.0.2` hanya contoh alamat VPN; ganti dengan alamat privat Hermes teman yang dapat dijangkau dari komputer bot. Hermes API biasanya hanya mendengarkan localhost; untuk akses jarak jauh, teman perlu mengonfigurasi listener terbatas pada interface VPN dan firewall yang mengizinkan hanya host bot, atau membuat tunnel SSH yang aman. Jangan membuka API ke internet publik. Gunakan kunci API terpisah untuk masing-masing Hermes. `!status` menampilkan status Hermes yang dipilih untuk pengirim tersebut.
+Ganti nomor dan nilai contoh dengan konfigurasi deployment Anda. Nomor pada `HERMES_USER_ROUTES` harus tercantum di allowlist. Nomor lain yang diizinkan akan memakai endpoint Hermes default. Endpoint route harus dapat dijangkau dengan aman dari host bot; gunakan jaringan privat tepercaya atau tunnel terautentikasi, batasi akses API dan firewall, serta jangan mengekspos Hermes API ke internet publik. Gunakan API key terpisah untuk tiap endpoint. `!status` menampilkan Hermes yang dipilih untuk pengirim tersebut.
 
-## Dua instalasi memakai nomor bot WhatsApp yang sama
+## Deployment multi-instance
 
-Jika setiap orang menjalankan bot dan Hermes sendiri, kedua bot dapat ditautkan sebagai **perangkat tertaut yang berbeda** pada akun WhatsApp bot yang sama (selama akun masih memiliki slot perangkat tertaut). Jangan menyalin folder `auth_info/` dari satu komputer ke komputer lain; tautkan setiap instalasi secara terpisah dengan QR/pairing code agar masing-masing memiliki kredensial perangkat sendiri.
+Beberapa instalasi dapat memakai akun WhatsApp yang sama sebagai **perangkat tertaut yang berbeda**, selama akun memiliki slot perangkat tertaut. Perilaku ini bergantung pada WhatsApp dan Baileys; uji pada akun deployment Anda sebelum penggunaan produksi. Jangan menyalin folder `auth_info/` antar-host; tautkan setiap instalasi secara terpisah dengan QR/pairing code agar masing-masing memiliki kredensial perangkat sendiri.
 
-Di setiap komputer, isi `.env` dengan nomor pengirim yang boleh memakai instalasi tersebut saja dan Hermes lokal komputer itu. Contoh konfigurasi teman:
+Jika setiap instalasi ditujukan untuk kelompok pengguna yang berbeda, konfigurasi allowlist di setiap host secara terpisah:
 
 ```env
-WHATSAPP_ALLOWED_NUMBERS=6289876543210
+WHATSAPP_ALLOWED_NUMBERS=15557654321
 WHATSAPP_UNAUTHORIZED_BEHAVIOR=ignore
 HERMES_API_BASE_URL=http://127.0.0.1:8642
-HERMES_API_KEY=KUNCI_HERMES_LOKAL_TEMAN
+HERMES_API_KEY=YOUR_LOCAL_HERMES_API_KEY
 ```
 
-Komputer utama menggunakan nomor pengirim Anda sendiri di `WHATSAPP_ALLOWED_NUMBERS`. Pada kedua instalasi, `WHATSAPP_UNAUTHORIZED_BEHAVIOR=ignore` mencegah bot yang tidak bertanggung jawab atas pengirim itu mengirim balasan penolakan. Setiap bot menerima pembaruan pesan, tetapi hanya meneruskan pesan dari nomor allowlist lokalnya; pesan lain diabaikan. Masing-masing komputer memakai Hermes lokalnya sehingga tidak memerlukan endpoint Hermes jarak jauh. Jangan berbagi `.env` atau `auth_info/`; lindungi terminal dan file konfigurasi pada tiap komputer.
+Setiap instalasi hanya meneruskan pesan dari nomor allowlist lokalnya. `ignore` berguna jika beberapa instance menerima pesan yang sama agar instance yang tidak bertanggung jawab atas pengirim tersebut tidak mengirim balasan penolakan. Setiap host dapat menggunakan Hermes lokalnya sendiri. Jangan berbagi `.env` atau `auth_info/`; lindungi kredensial dan file konfigurasi pada setiap host.
 
 ## Menjalankan bot
 
